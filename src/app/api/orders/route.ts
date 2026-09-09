@@ -42,12 +42,13 @@ export async function POST(req: NextRequest) {
       const product = await db.product.findUnique({ where: { id: item.productId } })
       if (!product) continue
       const qty = Math.max(1, Math.min(99, parseInt(item.quantity) || 1))
-      subtotalUSD += product.price * qty
+      const unitPrice = Number(product.price)
+      subtotalUSD += unitPrice * qty
       orderItemsData.push({
         productId: product.id,
         name: product.name,
-        image: product.image,
-        unitPrice: product.price,
+        image: product.imageUrl,
+        unitPrice,
         quantity: qty,
         variant: item.variant || null,
       })

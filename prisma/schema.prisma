@@ -12,40 +12,56 @@ datasource db {
 }
 
 // ============================================================
-// PRODUCTS - Catálogo de produtos dropshipping
+// CATEGORIES / PRODUCTS — preserva as tabelas existentes da loja
 // ============================================================
-model Product {
-  id             String   @id @default(cuid())
-  slug           String   @unique
-  name           String
-  tagline        String?  // Frase curta de marketing
-  description    String   // Descrição detalhada para SEO
-  category       String   // tech, home, beauty, fitness, pets, fashion
-  price          Float    // Preço em USD (base)
-  compareAtPrice Float?   // Preço "de" para âncora de desconto
-  cost           Float?   // Custo do fornecedor (interno, para cálculo de margem)
-  image          String   // Imagem principal
-  images         String?  // JSON array de imagens adicionais
-  stock          Int      @default(100)
-  rating         Float    @default(4.8)
-  reviewCount    Int      @default(0)
-  soldCount      Int      @default(0) // Prova social: unidades vendidas
-  badge          String?  // BESTSELLER, VIRAL, NEW, TRENDING
-  isTrending     Boolean  @default(false)
-  isActive       Boolean  @default(true)
-  // SEO fields
-  seoTitle       String?
-  seoDescription String?
-  keywords       String?  // palavras-chave separadas por vírgula
-  // Dropshipping fields
-  supplierCountry String? // ex: CN, US
-  shippingDaysMin Int     @default(7)
-  shippingDaysMax Int    @default(14)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+model Category {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String    @unique
+  description String?
+  icon        String?
+  createdAt   DateTime? @default(now()) @map("created_at")
+  products    Product[]
 
-  reviews  Review[]
+  @@map("categories")
+}
+
+model Product {
+  id            String    @id @default(uuid()) @db.Uuid
+  name          String
+  artisticName  String?   @map("artistic_name")
+  description   String?
+  price         Decimal   @db.Decimal(12, 2)
+  categoryId    String?   @db.Uuid @map("category_id")
+  category      Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  imageUrl      String?   @map("image_url")
+  specs         Json?     @default("{}")
+  isActive      Boolean?  @default(true) @map("is_active")
+  stock         Int?      @default(0)
+  createdAt     DateTime? @default(now()) @map("created_at")
+
+  // Campos adicionados sem apagar os dados existentes
+  slug          String    @unique @default(cuid())
+  tagline       String?
+  compareAtPrice Decimal? @db.Decimal(12, 2)
+  cost          Decimal?  @db.Decimal(12, 2)
+  images        String?
+  rating        Float     @default(4.8)
+  reviewCount   Int       @default(0)
+  soldCount     Int       @default(0)
+  badge         String?
+  isTrending    Boolean   @default(false)
+  seoTitle      String?
+  seoDescription String?
+  keywords      String?
+  supplierCountry String?
+  shippingDaysMin Int      @default(7)
+  shippingDaysMax Int      @default(14)
+  updatedAt     DateTime  @updatedAt
+
+  reviews    Review[]
   orderItems OrderItem[]
+
+  @@map("products")
 }
 
 // ============================================================

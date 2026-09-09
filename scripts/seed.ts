@@ -236,26 +236,22 @@ const reviewsBySlug: Record<string, Array<{ name: string; country: string; ratin
 async function main() {
   console.log("Seeding products without deleting live store data...")
   for (const p of products) {
-    const { keywords, ...rest } = p
+    const { keywords, category, image, ...rest } = p
+    const productCategory = await db.category.findUnique({ where: { name: category } })
+    const data = {
+      ...rest,
+      imageUrl: image,
+      categoryId: productCategory?.id ?? null,
+      seoTitle: `${p.name} | Bellviion — Free Worldwide Shipping`,
+      seoDescription: p.description.slice(0, 155),
+      keywords,
+      shippingDaysMin: 7,
+      shippingDaysMax: 14,
+    }
     await db.product.upsert({
       where: { slug: p.slug },
-      update: {
-        ...rest,
-        seoTitle: `${p.name} | Bellviion — Free Worldwide Shipping`,
-        seoDescription: p.description.slice(0, 155),
-        keywords,
-        shippingDaysMin: 7,
-        shippingDaysMax: 14,
-      },
-      create: {
-        ...rest,
-        seoTitle: `${p.name} | Bellviion — Free Worldwide Shipping`,
-        seoDescription: p.description.slice(0, 155),
-        keywords,
-        shippingDaysMin: 7,
-        shippingDaysMax: 14,
-        stock: 100 + Math.floor(Math.random() * 150),
-      },
+      update: data,
+      create: { ...data, stock: 100 + Math.floor(Math.random() * 150) },
     })
   }
 
