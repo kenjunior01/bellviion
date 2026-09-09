@@ -2,6 +2,7 @@
   "name": "bellviion",
   "version": "2.0.0",
   "private": true,
+  "packageManager": "pnpm@10.28.0",
   "scripts": {
     "dev": "next dev -p 3000 2>&1 | tee dev.log",
     "build": "prisma generate && next build",
