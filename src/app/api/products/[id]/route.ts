@@ -12,12 +12,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const { id } = await params
     const product = await db.product.findUnique({
       where: { id },
-      include: {
-        category: true,
-        reviews: { orderBy: { createdAt: "desc" } },
-      },
+      include: { category: true },
     })
     if (!product) return NextResponse.json({ error: "Product not found" }, { status: 404 })
+    const reviews = await db.review.findMany({
+      where: { productId: id },
+      orderBy: { createdAt: "desc" },
+    })
     return NextResponse.json({
       product: {
         ...product,
@@ -25,6 +26,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         category: product.category?.name ?? null,
         price: Number(product.price),
         compareAtPrice: product.compareAtPrice ? Number(product.compareAtPrice) : null,
+        reviews,
       },
     })
   } catch (error) {
