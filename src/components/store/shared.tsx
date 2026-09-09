@@ -40,9 +40,9 @@ export function ProductBadge({ badge }: { badge: string | null }) {
   }
   const style = styles[badge] || { className: "bg-white text-zinc-950", icon: null }
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider shadow-lg ${style.className}`}>
-      {style.icon}
-      {badge}
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-normal shadow-lg max-w-full ${style.className}`}>
+      <span className="shrink-0">{style.icon}</span>
+      <span className="truncate">{badge}</span>
     </span>
   )
 }
@@ -80,7 +80,7 @@ export function ProductCard({ product, onSelect }: { product: Product; onSelect:
         <div className="absolute inset-0 bg-gradient-to-t from-ink/70 via-transparent to-transparent" aria-hidden />
       </motion.div>
 
-      <div className="absolute top-3.5 left-3.5 flex flex-col gap-1.5">
+      <div className="absolute top-3.5 left-3.5 flex flex-col gap-1.5 max-w-[calc(100%-5.5rem)]">
         <ProductBadge badge={product.badge} />
       </div>
       {discount > 0 && (

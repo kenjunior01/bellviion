@@ -55,6 +55,7 @@ export interface Order {
   email: string
   country: string
   city: string
+  zipCode?: string
   currency: string
   subtotal: number
   shipping: number
@@ -64,6 +65,9 @@ export interface Order {
   createdAt: string
   items: OrderItem[]
   referralCode?: string | null
+  utmSource?: string | null
+  utmMedium?: string | null
+  utmCampaign?: string | null
 }
 
 export interface OrderItem {

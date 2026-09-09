@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
+import type { Prisma } from "@prisma/client"
 
 // GET: lista pedidos (admin)
 export async function GET(req: NextRequest) {
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
 
     // Recalcula totais no servidor (segurança)
     let subtotalUSD = 0
-    const orderItemsData = []
+    const orderItemsData: Prisma.OrderItemUncheckedCreateWithoutOrderInput[] = []
     for (const item of items) {
       const product = await db.product.findUnique({ where: { id: item.productId } })
       if (!product) continue
