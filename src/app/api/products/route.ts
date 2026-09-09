@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
 
     const where: Record<string, unknown> = { isActive: true }
 
-    if (category && category !== "all") where.category = category
+    if (category && category !== "all") where.category = { name: category }
     if (featured === "true") where.isTrending = true
     if (search) {
       where.OR = [
@@ -27,9 +27,22 @@ export async function GET(req: NextRequest) {
     else if (sort === "rating") orderBy = { rating: "desc" }
     else if (sort === "newest") orderBy = { createdAt: "desc" }
 
-    const products = await db.product.findMany({ where, orderBy })
+    const products = await db.product.findMany({
+      where,
+      orderBy,
+      include: { category: true },
+    })
 
-    return NextResponse.json({ products })
+    return NextResponse.json({
+      products: products.map(({ category: productCategory, imageUrl, artisticName, ...product }) => ({
+        ...product,
+        image: imageUrl,
+        artistic_name: artisticName,
+        category: productCategory?.name ?? null,
+        price: Number(product.price),
+        compareAtPrice: product.compareAtPrice ? Number(product.compareAtPrice) : null,
+      })),
+    })
   } catch (error) {
     console.error("GET /api/products error:", error)
     return NextResponse.json({ error: "Failed to fetch products" }, { status: 500 })
@@ -59,17 +72,21 @@ export async function POST(req: NextRequest) {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "") + "-" + Date.now().toString(36).slice(-4)
 
+    const productCategory = category
+      ? await db.category.findUnique({ where: { name: category } })
+      : null
+
     const product = await db.product.create({
       data: {
         slug,
         name,
         tagline: tagline || "",
         description: description || "",
-        category: category || "home",
         price: parseFloat(price),
         compareAtPrice: compareAtPrice ? parseFloat(compareAtPrice) : null,
         cost: cost ? parseFloat(cost) : null,
-        image,
+        imageUrl: image,
+        categoryId: productCategory?.id ?? null,
         badge: badge || "NEW",
         isTrending: !!isTrending,
         stock: stock ? parseInt(stock) : 100,

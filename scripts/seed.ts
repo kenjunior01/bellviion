@@ -234,29 +234,24 @@ const reviewsBySlug: Record<string, Array<{ name: string; country: string; ratin
 }
 
 async function main() {
-  console.log("Clearing existing data...")
-  await db.clickEvent.deleteMany()
-  await db.orderItem.deleteMany()
-  await db.order.deleteMany()
-  await db.review.deleteMany()
-  await db.product.deleteMany()
-  await db.affiliate.deleteMany()
-  await db.subscriber.deleteMany()
-  await db.setting.deleteMany()
-
-  console.log("Seeding products...")
+  console.log("Seeding products without deleting live store data...")
   for (const p of products) {
-    const { keywords, ...rest } = p
-    await db.product.create({
-      data: {
-        ...rest,
-        seoTitle: `${p.name} | Bellviion — Free Worldwide Shipping`,
-        seoDescription: p.description.slice(0, 155),
-        keywords: keywords,
-        shippingDaysMin: 7,
-        shippingDaysMax: 14,
-        stock: 100 + Math.floor(Math.random() * 150),
-      },
+    const { keywords, category, image, ...rest } = p
+    const productCategory = await db.category.findUnique({ where: { name: category } })
+    const data = {
+      ...rest,
+      imageUrl: image,
+      categoryId: productCategory?.id ?? null,
+      seoTitle: `${p.name} | Bellviion — Free Worldwide Shipping`,
+      seoDescription: p.description.slice(0, 155),
+      keywords,
+      shippingDaysMin: 7,
+      shippingDaysMax: 14,
+    }
+    await db.product.upsert({
+      where: { slug: p.slug },
+      update: data,
+      create: { ...data, stock: 100 + Math.floor(Math.random() * 150) },
     })
   }
 
@@ -264,6 +259,7 @@ async function main() {
   for (const [slug, reviews] of Object.entries(reviewsBySlug)) {
     const product = await db.product.findUnique({ where: { slug } })
     if (!product) continue
+    await db.review.deleteMany({ where: { productId: product.id } })
     for (const r of reviews) {
       await db.review.create({
         data: {
@@ -292,12 +288,18 @@ async function main() {
     affiliate_commission: "10",
   }
   for (const [key, value] of Object.entries(settings)) {
-    await db.setting.create({ data: { key, value } })
+    await db.setting.upsert({
+      where: { key },
+      update: { value },
+      create: { key, value },
+    })
   }
 
   console.log("Seeding demo affiliate...")
-  await db.affiliate.create({
-    data: {
+  await db.affiliate.upsert({
+    where: { code: "TIKTOK10" },
+    update: { name: "Demo Influencer", email: "influencer@bellviion.com", commission: 10 },
+    create: {
       code: "TIKTOK10",
       name: "Demo Influencer",
       email: "influencer@bellviion.com",
