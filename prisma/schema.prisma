@@ -1,0 +1,166 @@
+// Bellviion Dropshipping Store - Database Schema
+// Optimized for international dropshipping (US/UK/CA/AU/EU) with PayPal
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// PRODUCTS - Catálogo de produtos dropshipping
+// ============================================================
+model Product {
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  name           String
+  tagline        String?  // Frase curta de marketing
+  description    String   // Descrição detalhada para SEO
+  category       String   // tech, home, beauty, fitness, pets, fashion
+  price          Float    // Preço em USD (base)
+  compareAtPrice Float?   // Preço "de" para âncora de desconto
+  cost           Float?   // Custo do fornecedor (interno, para cálculo de margem)
+  image          String   // Imagem principal
+  images         String?  // JSON array de imagens adicionais
+  stock          Int      @default(100)
+  rating         Float    @default(4.8)
+  reviewCount    Int      @default(0)
+  soldCount      Int      @default(0) // Prova social: unidades vendidas
+  badge          String?  // BESTSELLER, VIRAL, NEW, TRENDING
+  isTrending     Boolean  @default(false)
+  isActive       Boolean  @default(true)
+  // SEO fields
+  seoTitle       String?
+  seoDescription String?
+  keywords       String?  // palavras-chave separadas por vírgula
+  // Dropshipping fields
+  supplierCountry String? // ex: CN, US
+  shippingDaysMin Int     @default(7)
+  shippingDaysMax Int    @default(14)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  reviews  Review[]
+  orderItems OrderItem[]
+}
+
+// ============================================================
+// ORDERS - Pedidos internacionais
+// ============================================================
+model Order {
+  id             String   @id @default(cuid())
+  orderNumber    String   @unique
+  customerName   String
+  email          String
+  phone          String?
+  country        String   // US, GB, CA, AU, DE, FR...
+  state          String?
+  city           String
+  address1       String
+  address2       String?
+  zipCode        String
+  currency       String   @default("USD")
+  exchangeRate   Float    @default(1.0)
+  subtotal       Float
+  shipping       Float    @default(0)
+  discount       Float    @default(0)
+  total          Float
+  // PayPal
+  paypalOrderId  String?
+  paypalCaptureId String?
+  paymentStatus  String   @default("pending") // pending, paid, failed, refunded
+  status         String   @default("processing") // processing, fulfilled, shipped, delivered, cancelled
+  // Affiliate tracking
+  referralCode   String?  // código de afiliado usado
+  utmSource      String?
+  utmMedium      String?
+  utmCampaign    String?
+  couponCode     String?
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  items OrderItem[]
+}
+
+model OrderItem {
+  id         String  @id @default(cuid())
+  orderId    String
+  order      Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId  String?
+  product    Product? @relation(fields: [productId], references: [id])
+  name       String  // snapshot do nome no momento da compra
+  image      String?
+  unitPrice  Float
+  quantity   Int
+  variant    String? // cor, tamanho etc.
+}
+
+// ============================================================
+// REVIEWS - Prova social
+// ============================================================
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String
+  country   String   @default("US")
+  rating    Int      @default(5)
+  title     String?
+  content   String
+  verified  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+// ============================================================
+// SETTINGS - Configurações da loja (PayPal, moedas, etc)
+// ============================================================
+model Setting {
+  key   String @id
+  value String
+}
+
+// ============================================================
+// SUBSCRIBERS - Newsletter (email marketing viral)
+// ============================================================
+model Subscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  source    String?  // popup, footer, checkout
+  createdAt DateTime @default(now())
+}
+
+// ============================================================
+// CLICKS - Tracking de afiliados e analytics
+// ============================================================
+model ClickEvent {
+  id          String   @id @default(cuid())
+  type        String   // referral, product_view, add_to_cart, share
+  productId   String?
+  referralCode String?
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  country     String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+}
+
+// ============================================================
+// AFFILIATES - Programa de afiliados
+// ============================================================
+model Affiliate {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  email       String   @unique
+  commission  Float    @default(10) // % de comissão
+  clicks      Int      @default(0)
+  sales       Int      @default(0)
+  earnings    Float    @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}

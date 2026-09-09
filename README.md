@@ -1,30 +1,69 @@
-# BELLVION website design
+# BELLVIION — Viral Dropshipping Store v2.0
 
-*Automatically synced with your [v0.dev](https://v0.dev) deployments*
+Bellviion is a production-ready viral dropshipping store built for high-value markets (🇺🇸 US · 🇬🇧 UK · 🇨🇦 CA · 🇦🇺 AU · 🇪🇺 EU) with PayPal checkout, an affiliate/referral tracking system and a complete SEO strategy baked in.
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/kenjunior01s-projects/v0-bellvion-website-design)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.dev-black?style=for-the-badge)](https://v0.dev/chat/projects/8y3n7zhKwjS)
+Built with **Next.js 16 · TypeScript · Tailwind CSS · shadcn/ui · Prisma (SQLite) · Framer Motion**.
 
-## Overview
+## ✨ What's inside
 
-This repository will stay in sync with your deployed chats on [v0.dev](https://v0.dev).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
+**Viral & conversion engine**
+- Flash sale countdown (persistent), live viewers counter, stock urgency bars
+- Social-proof popups (recent purchases), newsletter popup (10% off)
+- Badges: VIRAL / BESTSELLER / TRENDING, sold counts, anchor pricing with % off
+- Free-shipping progress bar, kinetic hero, marquee — "VOLT" design system (dark premium + electric lime)
 
-## Deployment
+**Money**
+- PayPal checkout — server-side OAuth (create/capture/status). Works in demo mode without credentials; switch to live in Admin → Settings or `.env`
+- Multi-currency: USD / EUR / GBP / CAD / AUD with persistent selector
+- Affiliate system: `?ref=CODE&utm_source=...` tracked end-to-end (clicks → orders → commission)
 
-Your project is live at:
+**Admin dashboard** (`/admin`, password-protected)
+- Revenue + margin overview, orders with affiliate/UTM attribution
+- Full product CRUD (incl. private `cost` field for margin calc, SEO keywords)
+- Toggle visible/trending, settings for PayPal, announcement bar, free shipping, commission %
 
-**[https://vercel.com/kenjunior01s-projects/v0-bellvion-website-design](https://vercel.com/kenjunior01s-projects/v0-bellvion-website-design)**
+**SEO**
+- Full metadata + OpenGraph + Twitter cards, JSON-LD (`OnlineStore`, `WebSite`, `Product`)
+- Dynamic `sitemap.xml`, `robots.txt`, semantic HTML, image alt texts, keyword targeting for US/UK/CA/AU
 
-## Build your app
+## 🚀 Getting started
 
-Continue building your app on:
+```bash
+# 1. Install
+npm install   # or: bun install
 
-**[https://v0.dev/chat/projects/8y3n7zhKwjS](https://v0.dev/chat/projects/8y3n7zhKwjS)**
+# 2. Environment
+cp .env.example .env
 
-## How It Works
+# 3. Database (SQLite — no server needed)
+npx prisma db push
+npx tsx prisma/seed.ts   # optional: 10 winning products demo data
 
-1. Create and modify your project using [v0.dev](https://v0.dev)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+# 4. Run
+npm run dev      # http://localhost:3000
+```
+
+## 🔑 Admin access
+
+1. Go to `/admin`
+2. Default password: `bellviion2026`
+3. **Change it immediately** in Settings
+
+In Admin you can add the best-selling products for each target country, set stock, margins, SEO keywords, trending flags and more.
+
+## 💳 PayPal
+
+1. Create an app at [developer.paypal.com](https://developer.paypal.com/dashboard/applications)
+2. Copy Client ID + Secret into **Admin → Settings** (or `.env` as `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET`)
+3. Set mode to `live` when going to production
+
+Without credentials the checkout runs in demo mode (orders are created and marked paid for testing).
+
+## 📦 Sourcing (dropshipping)
+
+Recommended suppliers: AliExpress · CJ Dropshipping · Zendrop · Spocket.
+Research winning products with TikTok Creative Center, Facebook Ad Library and AliExpress Dropshipping Center.
+
+## 🌐 Deploy
+
+Works on any Node host (Vercel, Railway, VPS). For a database on serverless hosts, swap the SQLite provider in `prisma/schema.prisma` for Postgres and update `DATABASE_URL`.

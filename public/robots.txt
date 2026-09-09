@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# Bloqueia páginas internas do painel
+Disallow: /api/admin-login
+Disallow: /api/orders
+Disallow: /api/settings
+
+# Sitemap
+Sitemap: https://www.bellviion.com/sitemap.xml
