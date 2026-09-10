@@ -91,9 +91,10 @@ export function AdminView({ onExit }: { onExit: () => void }) {
 // DASHBOARD principal
 // ============================================================
 function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => void }) {
-  const [tab, setTab] = useState<"overview" | "products" | "orders" | "settings">("overview")
+  const [tab, setTab] = useState<"overview" | "products" | "orders" | "operations" | "affiliates" | "settings">("overview")
   const [products, setProducts] = useState<Product[]>([])
   const [orders, setOrders] = useState<Order[]>([])
+  const [affiliates, setAffiliates] = useState<Array<{ id: string; code: string; name: string; email: string; commission: number; clicks: number; sales: number; earnings: number; isActive: boolean }>>([])
   const [settings, setSettings] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [editingProduct, setEditingProduct] = useState<Product | "new" | null>(null)
@@ -106,10 +107,12 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
         fetch("/api/products").then((r) => r.json()),
         fetch("/api/orders", { headers: authHeaders(token) }).then((r) => r.json()),
         fetch("/api/settings").then((r) => r.json()),
+        fetch("/api/affiliate", { headers: authHeaders(token) }).then((r) => r.json()),
       ])
       setProducts(p.products || [])
       setOrders(o.orders || [])
       setSettings(s.settings || {})
+      setAffiliates(a.affiliates || [])
     } finally {
       setLoading(false)
     }
@@ -126,6 +129,8 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
     { id: "overview", label: "Overview", icon: LayoutDashboard },
     { id: "products", label: `Products (${products.length})`, icon: Package },
     { id: "orders", label: `Orders (${orders.length})`, icon: ShoppingBag },
+    { id: "operations", label: "Fulfillment", icon: TrendingUp },
+    { id: "affiliates", label: `Affiliates (${affiliates.length})`, icon: Users },
     { id: "settings", label: "Settings", icon: Settings },
   ] as const
 
@@ -380,6 +385,42 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
                   </div>
                 ))
               )}
+            </div>
+          )}
+
+          {/* ===== FULFILLMENT ===== */}
+          {tab === "operations" && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  ["To fulfill", orders.filter((o) => o.paymentStatus === "paid" && ["processing", "confirmed"].includes(o.status)).length, "bg-amber-50 text-amber-700"],
+                  ["Shipped", orders.filter((o) => o.status === "shipped").length, "bg-blue-50 text-blue-700"],
+                  ["Delivered", orders.filter((o) => o.status === "delivered").length, "bg-emerald-50 text-emerald-700"],
+                  ["US + Canada", orders.filter((o) => ["US", "CA"].includes(o.country)).length, "bg-violet-50 text-violet-700"],
+                ].map(([label, value, color]) => (
+                  <div key={label} className={`rounded-2xl p-5 ${color}`}><p className="text-2xl font-black">{value}</p><p className="text-xs font-bold uppercase tracking-wide mt-1">{label}</p></div>
+                ))}
+              </div>
+              <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-4"><div><h2 className="font-black text-gray-900">Fulfillment queue</h2><p className="text-sm text-gray-500">Prioritize paid orders for US and Canada dispatch.</p></div><span className="text-xs font-bold bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-full">Shopify-ready workflow</span></div>
+                <div className="space-y-3">
+                  {orders.filter((o) => o.paymentStatus === "paid" && o.status !== "delivered" && o.status !== "cancelled").map((o) => (
+                    <div key={o.id} className="flex flex-wrap items-center gap-3 border-t border-gray-100 pt-3">
+                      <div className="flex-1 min-w-[180px]"><p className="font-bold text-gray-900">{o.orderNumber}</p><p className="text-xs text-gray-500">{o.customerName} · {o.country} · {o.zipCode}</p></div>
+                      <span className="text-xs font-semibold text-gray-500">{o.items.length} item(s)</span><span className="font-black">${o.total.toFixed(2)} {o.currency}</span><span className="text-xs font-bold bg-slate-100 px-2 py-1 rounded-full">{o.status}</span>
+                    </div>
+                  ))}
+                  {orders.filter((o) => o.paymentStatus === "paid" && o.status !== "delivered" && o.status !== "cancelled").length === 0 && <p className="text-sm text-gray-500 py-6 text-center">No paid orders waiting for fulfillment.</p>}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ===== AFFILIATES ===== */}
+          {tab === "affiliates" && (
+            <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-gray-100"><h2 className="font-black text-gray-900">Affiliate partners</h2><p className="text-sm text-gray-500">Track codes, sales and commissions.</p></div>
+              <div className="overflow-x-auto"><table className="w-full text-sm"><thead className="bg-gray-50"><tr><th className="p-4 text-left">Partner</th><th className="p-4 text-left">Code</th><th className="p-4 text-left">Clicks</th><th className="p-4 text-left">Sales</th><th className="p-4 text-left">Earnings</th><th className="p-4 text-left">Status</th></tr></thead><tbody>{affiliates.map((a) => <tr key={a.id} className="border-t border-gray-100"><td className="p-4"><p className="font-bold">{a.name}</p><p className="text-xs text-gray-500">{a.email}</p></td><td className="p-4 font-mono font-bold">{a.code}</td><td className="p-4">{a.clicks}</td><td className="p-4">{a.sales}</td><td className="p-4 font-bold">${a.earnings.toFixed(2)}</td><td className="p-4"><span className={`text-xs font-bold px-2 py-1 rounded-full ${a.isActive ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>{a.isActive ? "Active" : "Paused"}</span></td></tr>)}</tbody></table></div>
             </div>
           )}
 
