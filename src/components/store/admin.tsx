@@ -103,7 +103,7 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [p, o, s] = await Promise.all([
+      const [p, o, s, a] = await Promise.all([
         fetch("/api/products").then((r) => r.json()),
         fetch("/api/orders", { headers: authHeaders(token) }).then((r) => r.json()),
         fetch("/api/settings").then((r) => r.json()),

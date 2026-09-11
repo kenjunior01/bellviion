@@ -61,6 +61,25 @@ model Product {
   @@map("products")
 }
 
+enum UserRole {
+  CUSTOMER
+  OPERATOR
+  ADMIN
+  AFFILIATE
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         UserRole @default(CUSTOMER)
+  affiliateId  String?
+  affiliate    Affiliate? @relation(fields: [affiliateId], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
 // ============================================================
 // ORDERS - Pedidos internacionais
 // ============================================================
@@ -85,6 +104,10 @@ model Order {
   // PayPal
   paypalOrderId  String?
   paypalCaptureId String?
+  shopifyOrderId String? @unique
+  trackingNumber String?
+  trackingUrl    String?
+  fulfillmentProvider String?
   paymentStatus  String   @default("pending") // pending, paid, failed, refunded
   status         String   @default("processing") // processing, fulfilled, shipped, delivered, cancelled
   // Affiliate tracking
@@ -175,4 +198,5 @@ model Affiliate {
   earnings    Float    @default(0)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
+  users       User[]
 }
