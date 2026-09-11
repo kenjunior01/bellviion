@@ -6,17 +6,17 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
     const code = searchParams.get("code")
-    if (!code) return NextResponse.json({ valid: false })
+    const adminPassword = process.env.ADMIN_PASSWORD || "bellviion2026"
 
-    const affiliate = await db.affiliate.findUnique({ where: { code: code.toUpperCase() } })
-    if (!affiliate || !affiliate.isActive) {
-      return NextResponse.json({ valid: false })
+    if (!code && req.headers.get("x-admin-password") === adminPassword) {
+      const affiliates = await db.affiliate.findMany({ orderBy: { createdAt: "desc" } })
+      return NextResponse.json({ affiliates })
     }
-    return NextResponse.json({
-      valid: true,
-      code: affiliate.code,
-      commission: affiliate.commission,
-    })
+
+    if (!code) return NextResponse.json({ valid: false })
+    const affiliate = await db.affiliate.findUnique({ where: { code: code.toUpperCase() } })
+    if (!affiliate || !affiliate.isActive) return NextResponse.json({ valid: false })
+    return NextResponse.json({ valid: true, code: affiliate.code, commission: affiliate.commission })
   } catch (error) {
     console.error("GET /api/affiliate error:", error)
     return NextResponse.json({ valid: false }, { status: 500 })
