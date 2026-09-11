@@ -23,12 +23,24 @@ function validShopDomain(shop: string) {
 export async function GET(request: NextRequest) {
   const incoming = new URL(request.url)
   const shop = incoming.searchParams.get("shop")
-  const secret = process.env.SHOPIFY_SHARED_SECRET
+  const secret = process.env.SHOPIFY_SHARED_SECRET || process.env.SHOPIFY_API_SECRET
   const clientId = process.env.SHOPIFY_CLIENT_ID || process.env.SHOPIFY_API_KEY
-  const redirectUri = `${incoming.origin}/api/shopify/oauth`
+  const forwardedHost = request.headers.get("x-forwarded-host")
+  const forwardedProto = request.headers.get("x-forwarded-proto") || "https"
+  const publicOrigin = forwardedHost ? `${forwardedProto}://${forwardedHost}` : incoming.origin
+  const redirectUri = `${publicOrigin}/api/shopify/oauth`
 
-  if (!shop || !validShopDomain(shop) || !secret || !verifyShopifyHmac(incoming.searchParams, secret)) {
-    return NextResponse.json({ error: "Invalid Shopify installation request" }, { status: 400 })
+  if (!shop || !validShopDomain(shop)) {
+    return NextResponse.json({ error: "Invalid Shopify shop domain" }, { status: 400 })
+  }
+  if (!secret) {
+    return NextResponse.json({ error: "Shopify OAuth secret is not configured" }, { status: 503 })
+  }
+  if (!verifyShopifyHmac(incoming.searchParams, secret)) {
+    return NextResponse.json(
+      { error: "Shopify HMAC verification failed", detail: "Update SHOPIFY_SHARED_SECRET with the Client Secret from this Shopify app." },
+      { status: 401 },
+    )
   }
 
   const code = incoming.searchParams.get("code")
