@@ -23,7 +23,7 @@ function validShopDomain(shop: string) {
 export async function GET(request: NextRequest) {
   const incoming = new URL(request.url)
   const shop = incoming.searchParams.get("shop")
-  const secret = process.env.SHOPIFY_SHARED_SECRET || process.env.SHOPIFY_API_SECRET
+  const secret = process.env.SHOPIFY_SHARED_SECRET_2 || process.env.SHOPIFY_SHARED_SECRET || process.env.SHOPIFY_API_SECRET
   const clientId = process.env.SHOPIFY_CLIENT_ID || process.env.SHOPIFY_API_KEY
   const forwardedHost = request.headers.get("x-forwarded-host")
   const forwardedProto = request.headers.get("x-forwarded-proto") || "https"
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
   }
   if (!verifyShopifyHmac(incoming.searchParams, secret)) {
     return NextResponse.json(
-      { error: "Shopify HMAC verification failed", detail: "Update SHOPIFY_SHARED_SECRET with the Client Secret from this Shopify app." },
+      { error: "Shopify HMAC verification failed", detail: "Check that SHOPIFY_SHARED_SECRET_2 matches the Client Secret for the Shopify app that generated this installation URL." },
       { status: 401 },
     )
   }
