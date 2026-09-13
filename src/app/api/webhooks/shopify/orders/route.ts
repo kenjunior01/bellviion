@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 
 function validSignature(raw: string, signature: string | null) {
-  const secret = process.env.SHOPIFY_WEBHOOK_SECRET || process.env.SHOPIFY_API_SECRET
+  const secret = process.env.SHOPIFY_WEBHOOK_SECRET || process.env.SHOPIFY_SHARED_SECRET_2 || process.env.SHOPIFY_SHARED_SECRET || process.env.SHOPIFY_API_SECRET
   if (!secret || !signature) return false
   const expected = createHmac("sha256", secret).update(raw, "utf8").digest("base64")
   return expected.length === signature.length && timingSafeEqual(Buffer.from(expected), Buffer.from(signature))
@@ -13,6 +13,13 @@ export async function POST(request: NextRequest) {
   const raw = await request.text()
   if (!validSignature(raw, request.headers.get("x-shopify-hmac-sha256"))) return NextResponse.json({ error: "Invalid signature" }, { status: 401 })
   try {
+    const eventId = request.headers.get("x-shopify-webhook-id")
+    const shop = request.headers.get("x-shopify-shop-domain") || "unknown"
+    if (eventId) {
+      const existing = await db.shopifyWebhookEvent.findUnique({ where: { eventId } })
+      if (existing) return NextResponse.json({ success: true, duplicate: true })
+      await db.shopifyWebhookEvent.create({ data: { eventId, shop, topic: request.headers.get("x-shopify-topic") || "orders" } })
+    }
     const payload = JSON.parse(raw)
     const shipping = payload.shipping_address || payload.billing_address || {}
     const total = Number(payload.current_total_price || payload.total_price || 0)

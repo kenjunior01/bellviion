@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react"
 import {
   Lock, LayoutDashboard, Package, ShoppingBag, Settings, Plus, Pencil, Trash2, X, LogOut,
-  TrendingUp, DollarSign, Users, Eye, EyeOff, Loader2, Search, Save, Image as ImageIcon,
+  TrendingUp, DollarSign, Users, Eye, EyeOff, Loader2, Search, Save, RefreshCw, Image as ImageIcon,
 } from "lucide-react"
 import type { Product, Order } from "@/lib/store-data"
 import { CATEGORIES, formatDate } from "@/lib/store-data"
@@ -96,29 +96,48 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
   const [orders, setOrders] = useState<Order[]>([])
   const [affiliates, setAffiliates] = useState<Array<{ id: string; code: string; name: string; email: string; commission: number; clicks: number; sales: number; earnings: number; isActive: boolean }>>([])
   const [settings, setSettings] = useState<Record<string, string>>({})
+  const [shopify, setShopify] = useState<{ connected: boolean; shop?: { name: string; myshopifyDomain: string }; error?: string } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [syncingShopify, setSyncingShopify] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | "new" | null>(null)
   const [mobileTabOpen, setMobileTabOpen] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [p, o, s, a] = await Promise.all([
+      const [p, o, s, a, h] = await Promise.all([
         fetch("/api/products").then((r) => r.json()),
         fetch("/api/orders", { headers: authHeaders(token) }).then((r) => r.json()),
         fetch("/api/settings").then((r) => r.json()),
         fetch("/api/affiliate", { headers: authHeaders(token) }).then((r) => r.json()),
+        fetch("/api/shopify/health", { headers: authHeaders(token) }).then((r) => r.json()),
       ])
       setProducts(p.products || [])
       setOrders(o.orders || [])
       setSettings(s.settings || {})
       setAffiliates(a.affiliates || [])
+      setShopify(h)
     } finally {
       setLoading(false)
     }
   }, [token])
 
   useEffect(() => { load() }, [load])
+
+  const syncShopify = async () => {
+    setSyncingShopify(true)
+    try {
+      const response = await fetch("/api/shopify/sync", { method: "POST", headers: authHeaders(token) })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || "Shopify sync failed")
+      toast.success(`Synced ${result.synced} products from Shopify`)
+      await load()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Shopify sync failed")
+    } finally {
+      setSyncingShopify(false)
+    }
+  }
 
   const revenue = orders.filter((o) => o.paymentStatus === "paid").reduce((a, o) => a + o.total, 0)
   const avgMargin = products.length
@@ -184,6 +203,13 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
                     <p className="text-xs text-gray-400 mt-0.5">{s.label}</p>
                   </div>
                 ))}
+              </div>
+
+              <div className={`rounded-2xl border p-5 ${shopify?.connected ? "bg-emerald-50 border-emerald-100" : "bg-amber-50 border-amber-100"}`}>
+                <div className="flex items-center justify-between gap-4">
+                  <div><p className="text-xs font-bold uppercase tracking-wide text-gray-500">Shopify connection</p><p className="font-black text-gray-900 mt-1">{shopify?.connected ? shopify.shop?.name || shopify.shop?.myshopifyDomain : "Not connected"}</p><p className="text-sm text-gray-600 mt-1">{shopify?.connected ? "Admin API is reachable from this panel." : shopify?.error || "Install the Shopify app to enable sync."}</p></div>
+                  <div className="flex items-center gap-2"><span className={`px-3 py-1.5 rounded-full text-xs font-black ${shopify?.connected ? "bg-emerald-600 text-white" : "bg-amber-600 text-white"}`}>{shopify?.connected ? "Connected" : "Action needed"}</span>{shopify?.connected && <button onClick={syncShopify} disabled={syncingShopify} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"><RefreshCw className={`h-3.5 w-3.5 ${syncingShopify ? "animate-spin" : ""}`} /> Sync</button>}</div>
+                </div>
               </div>
 
               {/* Top produtos */}
