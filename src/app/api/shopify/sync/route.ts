@@ -23,8 +23,8 @@ export async function POST(request: NextRequest) {
         if (!variant) continue
         await db.product.upsert({
           where: { slug: product.handle },
-          create: { slug: product.handle, name: product.title, description: product.descriptionHtml, price: Number(variant.price), imageUrl: product.featuredImage?.url || null, stock: product.totalInventory, isActive: product.status === "ACTIVE" },
-          update: { name: product.title, description: product.descriptionHtml, price: Number(variant.price), imageUrl: product.featuredImage?.url || null, stock: product.totalInventory, isActive: product.status === "ACTIVE" },
+          create: { slug: product.handle, name: product.title, description: product.descriptionHtml, price: Number(variant.price), imageUrl: product.featuredImage?.url || null, stock: product.totalInventory, isActive: product.status === "ACTIVE", specs: { shopifyProductId: product.id, shopifyVariantId: variant.id } },
+          update: { name: product.title, description: product.descriptionHtml, price: Number(variant.price), imageUrl: product.featuredImage?.url || null, stock: product.totalInventory, isActive: product.status === "ACTIVE", specs: { shopifyProductId: product.id, shopifyVariantId: variant.id } },
         })
         synced += 1
       }
