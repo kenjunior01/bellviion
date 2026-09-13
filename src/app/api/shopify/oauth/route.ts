@@ -1,5 +1,6 @@
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto"
 import { NextRequest, NextResponse } from "next/server"
+import { db } from "@/lib/db"
 
 function verifyShopifyHmac(params: URLSearchParams, secret: string) {
   const received = params.get("hmac")
@@ -86,10 +87,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Shopify did not return an access token" }, { status: 502 })
   }
 
-  return NextResponse.json({
-    connected: true,
-    shop,
-    scope: tokenPayload.scope,
-    message: "Shopify connected. Store the Admin API token in a secure server-side integration.",
+  await db.shopifyConnection.upsert({
+    where: { shop },
+    create: { shop, accessToken: tokenPayload.access_token, scopes: tokenPayload.scope },
+    update: { accessToken: tokenPayload.access_token, scopes: tokenPayload.scope, lastSyncAt: new Date() },
   })
+
+  return NextResponse.redirect(new URL("/?shopify=connected", publicOrigin))
 }

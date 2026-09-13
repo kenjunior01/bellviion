@@ -96,6 +96,7 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
   const [orders, setOrders] = useState<Order[]>([])
   const [affiliates, setAffiliates] = useState<Array<{ id: string; code: string; name: string; email: string; commission: number; clicks: number; sales: number; earnings: number; isActive: boolean }>>([])
   const [settings, setSettings] = useState<Record<string, string>>({})
+  const [shopify, setShopify] = useState<{ connected: boolean; shop?: { name: string; myshopifyDomain: string }; error?: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [editingProduct, setEditingProduct] = useState<Product | "new" | null>(null)
   const [mobileTabOpen, setMobileTabOpen] = useState(false)
@@ -103,16 +104,18 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [p, o, s, a] = await Promise.all([
+      const [p, o, s, a, h] = await Promise.all([
         fetch("/api/products").then((r) => r.json()),
         fetch("/api/orders", { headers: authHeaders(token) }).then((r) => r.json()),
         fetch("/api/settings").then((r) => r.json()),
         fetch("/api/affiliate", { headers: authHeaders(token) }).then((r) => r.json()),
+        fetch("/api/shopify/health", { headers: authHeaders(token) }).then((r) => r.json()),
       ])
       setProducts(p.products || [])
       setOrders(o.orders || [])
       setSettings(s.settings || {})
       setAffiliates(a.affiliates || [])
+      setShopify(h)
     } finally {
       setLoading(false)
     }
@@ -184,6 +187,13 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
                     <p className="text-xs text-gray-400 mt-0.5">{s.label}</p>
                   </div>
                 ))}
+              </div>
+
+              <div className={`rounded-2xl border p-5 ${shopify?.connected ? "bg-emerald-50 border-emerald-100" : "bg-amber-50 border-amber-100"}`}>
+                <div className="flex items-center justify-between gap-4">
+                  <div><p className="text-xs font-bold uppercase tracking-wide text-gray-500">Shopify connection</p><p className="font-black text-gray-900 mt-1">{shopify?.connected ? shopify.shop?.name || shopify.shop?.myshopifyDomain : "Not connected"}</p><p className="text-sm text-gray-600 mt-1">{shopify?.connected ? "Admin API is reachable from this panel." : shopify?.error || "Install the Shopify app to enable sync."}</p></div>
+                  <span className={`px-3 py-1.5 rounded-full text-xs font-black ${shopify?.connected ? "bg-emerald-600 text-white" : "bg-amber-600 text-white"}`}>{shopify?.connected ? "Connected" : "Action needed"}</span>
+                </div>
               </div>
 
               {/* Top produtos */}
