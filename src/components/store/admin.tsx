@@ -99,6 +99,7 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
   const [shopify, setShopify] = useState<{ connected: boolean; shop?: { name: string; myshopifyDomain: string }; error?: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [syncingShopify, setSyncingShopify] = useState(false)
+  const [registeringWebhooks, setRegisteringWebhooks] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | "new" | null>(null)
   const [mobileTabOpen, setMobileTabOpen] = useState(false)
 
@@ -136,6 +137,20 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
       toast.error(error instanceof Error ? error.message : "Shopify sync failed")
     } finally {
       setSyncingShopify(false)
+    }
+  }
+
+  const registerShopifyWebhooks = async () => {
+    setRegisteringWebhooks(true)
+    try {
+      const response = await fetch("/api/shopify/webhooks", { method: "POST", headers: authHeaders(token) })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || "Webhook registration failed")
+      toast.success(`${result.webhooks?.length || 0} Shopify webhooks registered`)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Webhook registration failed")
+    } finally {
+      setRegisteringWebhooks(false)
     }
   }
 
@@ -208,7 +223,7 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
               <div className={`rounded-2xl border p-5 ${shopify?.connected ? "bg-emerald-50 border-emerald-100" : "bg-amber-50 border-amber-100"}`}>
                 <div className="flex items-center justify-between gap-4">
                   <div><p className="text-xs font-bold uppercase tracking-wide text-gray-500">Shopify connection</p><p className="font-black text-gray-900 mt-1">{shopify?.connected ? shopify.shop?.name || shopify.shop?.myshopifyDomain : "Not connected"}</p><p className="text-sm text-gray-600 mt-1">{shopify?.connected ? "Admin API is reachable from this panel." : shopify?.error || "Install the Shopify app to enable sync."}</p></div>
-                  <div className="flex items-center gap-2"><span className={`px-3 py-1.5 rounded-full text-xs font-black ${shopify?.connected ? "bg-emerald-600 text-white" : "bg-amber-600 text-white"}`}>{shopify?.connected ? "Connected" : "Action needed"}</span>{shopify?.connected && <button onClick={syncShopify} disabled={syncingShopify} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"><RefreshCw className={`h-3.5 w-3.5 ${syncingShopify ? "animate-spin" : ""}`} /> Sync</button>}</div>
+                  <div className="flex items-center gap-2"><span className={`px-3 py-1.5 rounded-full text-xs font-black ${shopify?.connected ? "bg-emerald-600 text-white" : "bg-amber-600 text-white"}`}>{shopify?.connected ? "Connected" : "Action needed"}</span>{shopify?.connected && <><button onClick={syncShopify} disabled={syncingShopify} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"><RefreshCw className={`h-3.5 w-3.5 ${syncingShopify ? "animate-spin" : ""}`} /> Sync</button><button onClick={registerShopifyWebhooks} disabled={registeringWebhooks} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 disabled:opacity-50">{registeringWebhooks ? "Registering…" : "Webhooks"}</button></>}</div>
                 </div>
               </div>
 
@@ -516,7 +531,18 @@ function ProductModal({
         const d = await res.json()
         throw new Error(d.error || "Save failed")
       }
-      toast.success(isEdit ? "Product updated ✅" : "Product added to store 🎉")
+      if (isEdit) {
+        const shopifyRes = await fetch(`/api/shopify/products/${product!.id}`, {
+          method: "PATCH",
+          headers: authHeaders(token),
+          body: JSON.stringify({ name: form.name, description: form.description, price: form.price }),
+        })
+        if (!shopifyRes.ok) {
+          const detail = await shopifyRes.json().catch(() => ({}))
+          throw new Error(`Saved locally, but Shopify update failed: ${detail.error || "unknown error"}`)
+        }
+      }
+      toast.success(isEdit ? "Product updated locally and in Shopify" : "Product added to store")
       onSaved()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Save failed")
